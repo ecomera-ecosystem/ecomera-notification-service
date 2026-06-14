@@ -1,5 +1,8 @@
 package com.ecomera.notification.enums;
 
 public enum NotificationStatus {
-    PENDING, SENT, FAILED
+    PENDING,
+    SENT,
+    FAILED,
+    READ
 }

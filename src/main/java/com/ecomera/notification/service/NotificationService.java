@@ -16,6 +16,7 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import java.time.Instant;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +27,58 @@ public class NotificationService {
     private final NotificationRepository repository;
     private final JavaMailSender mailSender;
     private final SpringTemplateEngine templateEngine;
+
+    public List<Notification> getByRecipient(String email) {
+        return repository.findByRecipientOrderByCreatedAtDesc(email);
+    }
+
+    public Notification getById(String id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Notification not found: " + id));
+    }
+
+    public Notification create(Notification notification) {
+        notification.setId(null);
+        notification.setCreatedAt(Instant.now());
+        notification.setSentAt(null);
+        notification.setErrorMessage(null);
+        if (notification.getStatus() == null) {
+            notification.setStatus(NotificationStatus.PENDING);
+        }
+        return repository.save(notification);
+    }
+
+    public Notification update(String id, Notification update) {
+        return repository.findById(id)
+                .map(existing -> {
+                    if (update.getRecipient() != null) existing.setRecipient(update.getRecipient());
+                    if (update.getSubject() != null) existing.setSubject(update.getSubject());
+                    if (update.getBody() != null) existing.setBody(update.getBody());
+                    if (update.getType() != null) existing.setType(update.getType());
+                    if (update.getStatus() != null) existing.setStatus(update.getStatus());
+                    if (update.getSourceService() != null) existing.setSourceService(update.getSourceService());
+                    if (update.getSentAt() != null) existing.setSentAt(update.getSentAt());
+                    if (update.getErrorMessage() != null) existing.setErrorMessage(update.getErrorMessage());
+                    return repository.save(existing);
+                })
+                .orElseThrow(() -> new RuntimeException("Notification not found: " + id));
+    }
+
+    public Notification markAsRead(String id) {
+        return repository.findById(id)
+                .map(existing -> {
+                    existing.setStatus(NotificationStatus.READ);
+                    return repository.save(existing);
+                })
+                .orElseThrow(() -> new RuntimeException("Notification not found: " + id));
+    }
+
+    public void delete(String id) {
+        if (!repository.existsById(id)) {
+            throw new RuntimeException("Notification not found: " + id);
+        }
+        repository.deleteById(id);
+    }
 
     public Notification createAndSend(String recipient, String subject, String body,
                                       NotificationType type, String sourceService) {

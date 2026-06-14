@@ -1,73 +1,71 @@
 package com.ecomera.notification.controller;
 
 import com.ecomera.notification.entity.Notification;
-import com.ecomera.notification.enums.NotificationStatus;
-import com.ecomera.notification.repository.NotificationRepository;
+import com.ecomera.notification.service.NotificationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/notifications")
+@Tag(name = "Notifications", description = "Notification management APIs")
 public class NotificationController {
 
-    private final NotificationRepository repository;
-
-    public NotificationController(NotificationRepository repository) {
-        this.repository = repository;
-    }
+    private final NotificationService notificationService;
 
     @PostMapping
+    @Operation(summary = "Create a notification")
+    @ApiResponse(responseCode = "201", description = "Notification created")
     public ResponseEntity<Notification> create(@RequestBody Notification notification) {
-        notification.setId(null);
-        notification.setCreatedAt(Instant.now());
-        notification.setSentAt(null);
-        notification.setErrorMessage(null);
-        if (notification.getStatus() == null) {
-            notification.setStatus(NotificationStatus.PENDING);
-        }
-        Notification saved = repository.save(notification);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(notificationService.create(notification));
     }
 
     @GetMapping
-    public ResponseEntity<List<Notification>> getAll() {
-        return ResponseEntity.ok(repository.findAll());
+    @Operation(summary = "Get current user's notifications")
+    @ApiResponse(responseCode = "200", description = "Notifications retrieved")
+    public ResponseEntity<List<Notification>> getAll(
+            @RequestHeader("X-User-Email") String email) {
+        return ResponseEntity.ok(notificationService.getByRecipient(email));
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get notification by ID")
+    @ApiResponse(responseCode = "200", description = "Notification retrieved")
+    @ApiResponse(responseCode = "404", description = "Notification not found")
     public ResponseEntity<Notification> getById(@PathVariable String id) {
-        return repository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.ok(notificationService.getById(id));
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Update a notification")
+    @ApiResponse(responseCode = "200", description = "Notification updated")
+    @ApiResponse(responseCode = "404", description = "Notification not found")
     public ResponseEntity<Notification> update(@PathVariable String id, @RequestBody Notification update) {
-        return repository.findById(id)
-                .map(existing -> {
-                    if (update.getRecipient() != null) existing.setRecipient(update.getRecipient());
-                    if (update.getSubject() != null) existing.setSubject(update.getSubject());
-                    if (update.getBody() != null) existing.setBody(update.getBody());
-                    if (update.getType() != null) existing.setType(update.getType());
-                    if (update.getStatus() != null) existing.setStatus(update.getStatus());
-                    if (update.getSourceService() != null) existing.setSourceService(update.getSourceService());
-                    if (update.getSentAt() != null) existing.setSentAt(update.getSentAt());
-                    if (update.getErrorMessage() != null) existing.setErrorMessage(update.getErrorMessage());
-                    return ResponseEntity.ok(repository.save(existing));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.ok(notificationService.update(id, update));
+    }
+
+    @PatchMapping("/{id}/read")
+    @Operation(summary = "Mark notification as read")
+    @ApiResponse(responseCode = "200", description = "Notification marked as read")
+    @ApiResponse(responseCode = "404", description = "Notification not found")
+    public ResponseEntity<Notification> markAsRead(@PathVariable String id) {
+        return ResponseEntity.ok(notificationService.markAsRead(id));
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Delete a notification")
+    @ApiResponse(responseCode = "204", description = "Notification deleted")
+    @ApiResponse(responseCode = "404", description = "Notification not found")
     public ResponseEntity<Void> delete(@PathVariable String id) {
-        if (repository.existsById(id)) {
-            repository.deleteById(id);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
+        notificationService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
