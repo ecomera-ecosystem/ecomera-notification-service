@@ -1,0 +1,24 @@
+name: Ecomera Notification Service Docker Release
+
+on:
+  push:
+    branches: [ "master" ]
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+jobs:
+  call-docker:
+    permissions:
+      contents: read
+      packages: read
+    uses: ecomera-ecosystem/.github/.github/workflows/docker.yml@main
+    with:
+      image_name: "ammysf/ecomera-notification-service"
+      dockerfile: "./Dockerfile"
+      context: "."
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
