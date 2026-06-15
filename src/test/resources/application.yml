@@ -1,0 +1,26 @@
+spring:
+  mail:
+    host: localhost
+    port: 1025
+  cloud:
+    config:
+      enabled: false
+    openfeign:
+      enabled: false
+    vault:
+      enabled: false
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+  kafka:
+    listener:
+      auto-startup: false
+    admin:
+      auto-create-topics: false
+    consumer:
+      auto-offset-reset: none
+
+eureka:
+  client:
+    enabled: false
